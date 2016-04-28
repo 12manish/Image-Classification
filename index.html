@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Image-classification by gonzalezjm</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Image-classification</h1>
+      <h2 class="project-tagline">Some work on the CIFAR-10 dataset. PCA, LDA, Random Forest, K-Nearest Neighbor</h2>
+      <a href="https://github.com/gonzalezjm/Image-Classification" class="btn">View on GitHub</a>
+      <a href="https://github.com/gonzalezjm/Image-Classification/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/gonzalezjm/Image-Classification/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="description" class="anchor" href="#description" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Description</h1>
+
+<p>This page is a short overview of my work on the CIFAR-10 dataset using 10-fold cross validation and PCA, LDA, Random Forest Classification and K-Nearest Neighbor Classification.</p>
+
+<h1>
+<a id="data-processing" class="anchor" href="#data-processing" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Data Processing</h1>
+
+<p>To start, we have the need to prepare the data by creating test and training data sets. Once we have that, we can start classifying.</p>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-c">#code to prepare data for classification, create test and training sets</span>
+<span class="pl-k">import</span> pandas <span class="pl-k">as</span> pd
+<span class="pl-k">from</span> sklearn.cross_validation <span class="pl-k">import</span> train_test_split
+
+data <span class="pl-k">=</span> pd.read_csv(<span class="pl-s"><span class="pl-pds">'</span>train1p_with_header.csv<span class="pl-pds">'</span></span>)
+<span class="pl-c1">X</span><span class="pl-k">=</span>data.iloc[:,<span class="pl-c1">0</span>:data.shape[<span class="pl-c1">1</span>]<span class="pl-k">-</span><span class="pl-c1">1</span>].as_matrix()
+y<span class="pl-k">=</span>data.iloc[:,data.shape[<span class="pl-c1">1</span>]<span class="pl-k">-</span><span class="pl-c1">1</span>]
+<span class="pl-c1">X_train</span>, <span class="pl-c1">X_test</span>, y_train, y_test <span class="pl-k">=</span> train_test_split(<span class="pl-c1">X</span>, y, <span class="pl-v">test_size</span><span class="pl-k">=</span><span class="pl-c1">0.2</span>) </pre></div>
+
+<h1>
+<a id="classifiers" class="anchor" href="#classifiers" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Classifiers</h1>
+
+<p>The first classifier I completed was a PCA (Principle Component Analysis) to Random Forest Classifier pipe. This approach resulted in a classifier accuracy of 32%.</p>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-c">#pca-&gt;rfc classifier</span>
+<span class="pl-k">import</span> numpy <span class="pl-k">as</span> np
+<span class="pl-k">from</span> sklearn.decomposition <span class="pl-k">import</span> <span class="pl-c1">PCA</span>
+<span class="pl-k">from</span> sklearn.ensemble <span class="pl-k">import</span> RandomForestClassifier
+
+<span class="pl-k">def</span> <span class="pl-en">pca_rfc</span>(<span class="pl-smi">X_train</span>,<span class="pl-smi">X_test</span>,<span class="pl-smi">y_train</span>,<span class="pl-smi">y_test</span>):
+    pca <span class="pl-k">=</span> PCA(<span class="pl-v">n_components</span><span class="pl-k">=</span><span class="pl-c1">500</span>)
+    pca.fit(<span class="pl-c1">X_train</span>)
+    scores <span class="pl-k">=</span> np.dot(<span class="pl-c1">X_train</span>,np.transpose(pca.components_))
+    rfc <span class="pl-k">=</span> RandomForestClassifier(<span class="pl-v">n_estimators</span><span class="pl-k">=</span><span class="pl-c1">500</span>, <span class="pl-v">oob_score</span><span class="pl-k">=</span><span class="pl-c1">True</span>, <span class="pl-v">random_state</span> <span class="pl-k">=</span> <span class="pl-c1">60</span>)
+    rfc.fit(scores,y_train)
+    <span class="pl-k">return</span> rfc.oob_score_
+
+pca_rfc(<span class="pl-c1">X_train</span>,<span class="pl-c1">X_test</span>,y_train,y_test)</pre></div>
+
+<p>The second classifier I completed was a PCA (Principle Component Analysis) to LDA (Linear Discriminant Analysis) pipe. This approach resulted in a classifier accuracy of 58%.</p>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-c">#pca-&gt;lda classifier</span>
+<span class="pl-k">import</span> numpy <span class="pl-k">as</span> np
+<span class="pl-k">from</span> sklearn.decomposition <span class="pl-k">import</span> <span class="pl-c1">PCA</span>
+<span class="pl-k">from</span> sklearn.lda <span class="pl-k">import</span> <span class="pl-c1">LDA</span>
+
+<span class="pl-k">def</span> <span class="pl-en">pca_lda</span>(<span class="pl-smi">X_train</span>,<span class="pl-smi">X_test</span>,<span class="pl-smi">y_train</span>,<span class="pl-smi">y_test</span>):
+    pca <span class="pl-k">=</span> PCA(<span class="pl-v">n_components</span><span class="pl-k">=</span><span class="pl-c1">500</span>)
+    lda <span class="pl-k">=</span> LDA()
+    pca.fit(<span class="pl-c1">X_train</span>)
+    scores <span class="pl-k">=</span> np.dot(<span class="pl-c1">X_train</span>,np.transpose(pca.components_))
+    lda.fit(scores, y_train)
+    <span class="pl-k">return</span> lda.score(scores, y_train, <span class="pl-v">sample_weight</span><span class="pl-k">=</span><span class="pl-c1">None</span>)
+
+pca_lda(<span class="pl-c1">X_train</span>,<span class="pl-c1">X_test</span>,y_train,y_test)</pre></div>
+
+<p>The third classifier I completed was a PCA (Principle Component Analysis) to KNN (K-Nearest-Neighbor) pipe. This approach resulted in a classifier accuracy of 38%.</p>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-c">#pca-&gt;knn classifier</span>
+<span class="pl-k">import</span> numpy <span class="pl-k">as</span> np
+<span class="pl-k">from</span> sklearn.decomposition <span class="pl-k">import</span> <span class="pl-c1">PCA</span>
+<span class="pl-k">from</span> sklearn.neighbors <span class="pl-k">import</span> KNeighborsClassifier
+
+<span class="pl-k">def</span> <span class="pl-en">pca_knn</span>(<span class="pl-smi">X_train</span>,<span class="pl-smi">X_test</span>,<span class="pl-smi">y_train</span>,<span class="pl-smi">y_test</span>):
+    pca <span class="pl-k">=</span> PCA(<span class="pl-v">n_components</span><span class="pl-k">=</span><span class="pl-c1">500</span>)
+    pca.fit(<span class="pl-c1">X_train</span>)
+    scores <span class="pl-k">=</span> np.dot(<span class="pl-c1">X_train</span>,np.transpose(pca.components_))
+    knn <span class="pl-k">=</span> KNeighborsClassifier(<span class="pl-c1">10</span>)
+    knn.fit(scores,y_train)
+    <span class="pl-k">return</span> knn.score(scores, y_train)
+
+pca_knn(<span class="pl-c1">X_train</span>,<span class="pl-c1">X_test</span>,y_train,y_test)</pre></div>
+
+<p>Lastly, I completed a 10-fold cross-validation that can be used for any of the classifiers. In the example below, I am running a 10-fold cross-validation on the PCA to Random Forest Classification. This cross-validation resulted in an accuracy of 32%.</p>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-c">#10 fold cross validation</span>
+<span class="pl-k">from</span> sklearn.cross_validation <span class="pl-k">import</span> KFold
+<span class="pl-k">import</span> numpy <span class="pl-k">as</span> np
+
+tenKFold <span class="pl-k">=</span> KFold(<span class="pl-c1">len</span>(<span class="pl-c1">X</span>[:,<span class="pl-c1">0</span>]), <span class="pl-c1">10</span>)
+accuracy <span class="pl-k">=</span> np.zeros(<span class="pl-c1">10</span>)
+i<span class="pl-k">=</span><span class="pl-c1">0</span>
+<span class="pl-k">for</span> train_index, test_index <span class="pl-k">in</span> tenKFold:
+    <span class="pl-c1">X_train</span>, <span class="pl-c1">X_test</span> <span class="pl-k">=</span> <span class="pl-c1">X</span>[train_index], <span class="pl-c1">X</span>[test_index]
+    y_train, y_test <span class="pl-k">=</span> y[train_index], y[test_index]
+    accuracy[i]<span class="pl-k">=</span> pca_rfc(<span class="pl-c1">X_train</span>,<span class="pl-c1">X_test</span>,y_train,y_test)
+    <span class="pl-c1">print</span> accuracy[i]
+    i<span class="pl-k">+=</span><span class="pl-c1">1</span>
+<span class="pl-c1">print</span>(<span class="pl-c1">sum</span>(accuracy)<span class="pl-k">/</span><span class="pl-c1">10</span>)</pre></div>
+
+<h1>
+<a id="rshiny-application" class="anchor" href="#rshiny-application" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>RShiny Application</h1>
+
+<p>Once I was able to get the classifications and cross validation working, I created an RShiny application to visualize some of the data. I decided to create boxplots for each classifier's cross validation data along with a data plot. I also created a boxplot comparing the three classifier's cross validations, which will definitely be more useful when the entirety of the data is tested/when the classifiers are trained to higher accuracies.</p>
+
+<p>The code below is for the user interface (ui.r), which handles interactions with the user and passes them to the server.</p>
+
+<div class="highlight highlight-source-r"><pre>library(<span class="pl-smi">shiny</span>)
+shinyUI(fluidPage(
+
+  titlePanel(<span class="pl-s"><span class="pl-pds">"</span>Image Classification<span class="pl-pds">"</span></span>),
+
+  sidebarLayout(
+    sidebarPanel(
+      selectInput(<span class="pl-s"><span class="pl-pds">'</span>class<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>Classifier<span class="pl-pds">'</span></span>, <span class="pl-k">list</span>(<span class="pl-s"><span class="pl-pds">"</span>PCA -&gt; Random Forest Classification<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>RFC<span class="pl-pds">"</span></span>, 
+                                              <span class="pl-s"><span class="pl-pds">"</span>PCA -&gt; Linear Discriminant Analysis<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>LDA<span class="pl-pds">"</span></span>, 
+                                              <span class="pl-s"><span class="pl-pds">"</span>PCA -&gt; K-Nearest Neighbor<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>KNN<span class="pl-pds">"</span></span>))
+    ),
+
+    mainPanel(
+      tabsetPanel(
+        tabPanel(<span class="pl-s"><span class="pl-pds">"</span>Box Plot<span class="pl-pds">"</span></span>,
+                 plotOutput(<span class="pl-s"><span class="pl-pds">"</span>plot1<span class="pl-pds">"</span></span>),
+                 h4(<span class="pl-s"><span class="pl-pds">"</span>Five Number Summary: MIN, Q1, Q2, Q3, MAX<span class="pl-pds">"</span></span>),
+                 textOutput(<span class="pl-s"><span class="pl-pds">"</span>getStats<span class="pl-pds">"</span></span>)
+        ),
+        tabPanel(<span class="pl-s"><span class="pl-pds">"</span>Dot Plot<span class="pl-pds">"</span></span>,
+                 plotOutput(<span class="pl-s"><span class="pl-pds">"</span>plot2<span class="pl-pds">"</span></span>)
+        ),
+        tabPanel(<span class="pl-s"><span class="pl-pds">"</span>Box Plot Comparison<span class="pl-pds">"</span></span>,
+                 plotOutput(<span class="pl-s"><span class="pl-pds">"</span>plot3<span class="pl-pds">"</span></span>)
+        )     
+      )
+
+    )
+  )
+))</pre></div>
+
+<p>The code below is for the server side of the application (server.r), which handles all of the plot creation and data handling.</p>
+
+<div class="highlight highlight-source-r"><pre>library(<span class="pl-smi">shiny</span>)
+<span class="pl-smi">cvData</span> <span class="pl-k">&lt;-</span> read.csv(<span class="pl-v">file</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>/home/spring2016_csci334user13/img_app/cvData.csv<span class="pl-pds">"</span></span>)
+
+shinyServer(<span class="pl-k">function</span>(<span class="pl-smi">input</span>, <span class="pl-smi">output</span>) {
+
+  <span class="pl-smi">output</span><span class="pl-k">$</span><span class="pl-smi">plot1</span> <span class="pl-k">&lt;-</span> renderPlot({
+    <span class="pl-v">name</span> <span class="pl-k">=</span> <span class="pl-smi">input</span><span class="pl-k">$</span><span class="pl-smi">class</span>
+
+    <span class="pl-k">if</span> (<span class="pl-smi">name</span><span class="pl-k">==</span><span class="pl-s"><span class="pl-pds">"</span>RFC<span class="pl-pds">"</span></span>) {
+      boxplot(<span class="pl-smi">cvData</span><span class="pl-k">$</span><span class="pl-smi">rfc</span>)
+    } <span class="pl-k">else</span> <span class="pl-k">if</span> (<span class="pl-smi">name</span><span class="pl-k">==</span><span class="pl-s"><span class="pl-pds">"</span>LDA<span class="pl-pds">"</span></span>) {
+      boxplot(<span class="pl-smi">cvData</span><span class="pl-k">$</span><span class="pl-smi">lda</span>)
+    } <span class="pl-k">else</span> {
+      boxplot(<span class="pl-smi">cvData</span><span class="pl-k">$</span><span class="pl-smi">knn</span>)
+    }
+
+  })
+
+  <span class="pl-smi">output</span><span class="pl-k">$</span><span class="pl-smi">plot2</span> <span class="pl-k">&lt;-</span> renderPlot({
+    <span class="pl-v">name</span> <span class="pl-k">=</span> <span class="pl-smi">input</span><span class="pl-k">$</span><span class="pl-smi">class</span>
+
+    <span class="pl-k">if</span> (<span class="pl-smi">name</span><span class="pl-k">==</span><span class="pl-s"><span class="pl-pds">"</span>RFC<span class="pl-pds">"</span></span>) {
+      <span class="pl-smi">y</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">cvData</span>[,<span class="pl-c1">1</span>]
+      <span class="pl-v">name</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>PCA -&gt; Random Forest Classification<span class="pl-pds">"</span></span>
+    } <span class="pl-k">else</span> <span class="pl-k">if</span> (<span class="pl-smi">name</span><span class="pl-k">==</span><span class="pl-s"><span class="pl-pds">"</span>LDA<span class="pl-pds">"</span></span>) {
+      <span class="pl-smi">y</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">cvData</span>[,<span class="pl-c1">2</span>]
+      <span class="pl-v">name</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>PCA -&gt; Linear Discriminant Analysis<span class="pl-pds">"</span></span>
+    } <span class="pl-k">else</span> {
+      <span class="pl-smi">y</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">cvData</span>[,<span class="pl-c1">3</span>]
+      <span class="pl-v">name</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>PCA -&gt; K-Nearest Neighbor<span class="pl-pds">"</span></span>
+    }
+    <span class="pl-smi">x</span> <span class="pl-k">&lt;-</span> <span class="pl-c1">1</span><span class="pl-k">:</span><span class="pl-c1">10</span>
+
+    plot(<span class="pl-smi">x</span>,<span class="pl-smi">y</span>,<span class="pl-v">main</span><span class="pl-k">=</span>paste(<span class="pl-s"><span class="pl-pds">"</span>10-Fold Cross Validation for<span class="pl-pds">"</span></span>, <span class="pl-smi">name</span>),<span class="pl-v">xlab</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">"</span>Cross-Validation Iteration<span class="pl-pds">"</span></span>,
+         <span class="pl-v">ylab</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">"</span>Accuracy<span class="pl-pds">"</span></span>,<span class="pl-v">ylim</span><span class="pl-k">=</span>c(<span class="pl-c1">0</span>,<span class="pl-c1">1</span>),<span class="pl-v">col</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span>black<span class="pl-pds">'</span></span>)
+  })
+
+  <span class="pl-smi">output</span><span class="pl-k">$</span><span class="pl-smi">plot3</span> <span class="pl-k">&lt;-</span> renderPlot({
+    boxplot(<span class="pl-smi">cvData</span>, <span class="pl-v">main</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">"</span>Accuracy by Classification<span class="pl-pds">"</span></span>)  
+  })
+
+  <span class="pl-smi">output</span><span class="pl-k">$</span><span class="pl-smi">getStats</span> <span class="pl-k">&lt;-</span> renderText({
+
+    <span class="pl-v">name</span> <span class="pl-k">=</span> <span class="pl-smi">input</span><span class="pl-k">$</span><span class="pl-smi">class</span>
+
+    <span class="pl-k">if</span> (<span class="pl-smi">name</span><span class="pl-k">==</span><span class="pl-s"><span class="pl-pds">"</span>RFC<span class="pl-pds">"</span></span>) { 
+      <span class="pl-smi">rfcPlot</span> <span class="pl-k">&lt;-</span> boxplot(<span class="pl-smi">cvData</span><span class="pl-k">$</span><span class="pl-smi">rfc</span>)
+      paste(<span class="pl-smi">rfcPlot</span><span class="pl-k">$</span><span class="pl-smi">stats</span>)
+
+    } <span class="pl-k">else</span> <span class="pl-k">if</span> (<span class="pl-smi">name</span><span class="pl-k">==</span><span class="pl-s"><span class="pl-pds">"</span>LDA<span class="pl-pds">"</span></span>) {
+      <span class="pl-smi">ldaPlot</span> <span class="pl-k">&lt;-</span> boxplot(<span class="pl-smi">cvData</span><span class="pl-k">$</span><span class="pl-smi">lda</span>)
+      paste(<span class="pl-smi">ldaPlot</span><span class="pl-k">$</span><span class="pl-smi">stats</span>)
+    } <span class="pl-k">else</span> {
+      <span class="pl-smi">knnPlot</span> <span class="pl-k">&lt;-</span> boxplot(<span class="pl-smi">cvData</span><span class="pl-k">$</span><span class="pl-smi">knn</span>)
+      paste(<span class="pl-smi">knnPlot</span><span class="pl-k">$</span><span class="pl-smi">stats</span>)
+    }
+
+  })
+
+})</pre></div>
+
+<h3>
+<a id="pca-random-forest-classification" class="anchor" href="#pca-random-forest-classification" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>PCA-&gt;Random Forest Classification</h3>
+
+<p><a href="http://imgur.com/L2a7v7l"><img src="http://i.imgur.com/L2a7v7l.png" title="source: imgur.com"></a>
+<a href="http://imgur.com/Mxnq0Vo"><img src="http://i.imgur.com/Mxnq0Vo.png" title="source: imgur.com"></a></p>
+
+<h3>
+<a id="pca-lda-classification" class="anchor" href="#pca-lda-classification" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>PCA-&gt;LDA Classification</h3>
+
+<p><a href="http://imgur.com/GD9NIf3"><img src="http://i.imgur.com/GD9NIf3.png" title="source: imgur.com"></a>
+<a href="http://imgur.com/JOfiRwr"><img src="http://i.imgur.com/JOfiRwr.png" title="source: imgur.com"></a></p>
+
+<h3>
+<a id="pca-knn-classification" class="anchor" href="#pca-knn-classification" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>PCA-&gt;KNN Classification</h3>
+
+<p><a href="http://imgur.com/K2MRFrg"><img src="http://i.imgur.com/K2MRFrg.png" title="source: imgur.com"></a>
+<a href="http://imgur.com/0o0o19s"><img src="http://i.imgur.com/0o0o19s.png" title="source: imgur.com"></a></p>
+
+<h3>
+<a id="boxplot-of-all-three-classifiers-cross-validation-data" class="anchor" href="#boxplot-of-all-three-classifiers-cross-validation-data" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Boxplot of All Three Classifiers' Cross Validation Data</h3>
+
+<p><a href="http://imgur.com/4MVoefC"><img src="http://i.imgur.com/4MVoefC.png" title="source: imgur.com"></a></p>
+
+<h1>
+<a id="conclusion" class="anchor" href="#conclusion" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Conclusion</h1>
+
+<p>In conclusion, I enjoyed the project and thought that it was pretty fun. I had never used RShiny or scikit learn before so it was a good experience. I may download the full dataset and set up a local environment so I can keep training the classifiers.</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/gonzalezjm/Image-Classification">Image-classification</a> is maintained by <a href="https://github.com/gonzalezjm">gonzalezjm</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
